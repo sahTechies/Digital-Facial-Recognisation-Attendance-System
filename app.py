@@ -132,8 +132,12 @@ def train_model_route():
         return jsonify({"status":"already_running"}), 202
     # reset status
     write_train_status({"running": True, "progress": 0, "message": "Starting training"})
-    # start background thread
-    t = threading.Thread(target=train_model_background, args=(DATASET_DIR, lambda p,m: write_train_status({"running": True, "progress": p, "message": m})))
+    # start background thread with proper status reset on completion
+    def progress_callback(p, m):
+        is_complete = (p >= 100) or ("error" in m.lower()) or ("not found" in m.lower()) or ("no training" in m.lower())
+        write_train_status({"running": not is_complete, "progress": p, "message": m})
+    
+    t = threading.Thread(target=train_model_background, args=(DATASET_DIR, progress_callback))
     t.daemon = True
     t.start()
     return jsonify({"status":"started"}), 202

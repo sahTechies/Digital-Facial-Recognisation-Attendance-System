@@ -30,10 +30,21 @@ document.addEventListener("DOMContentLoaded", () => {
     // poll until progress==100 or not running
     const t = setInterval(async () => {
       const s = await pollStatus();
-      if (s && s.progress >= 100) {
-        clearInterval(t);
-        trainBtn.disabled = false;
-        alert("Training completed");
+      if (s) {
+        // Check if training is complete (progress 100) or stopped (not running)
+        if (s.progress >= 100 || (!s.running && s.progress > 0)) {
+          clearInterval(t);
+          trainBtn.disabled = false;
+          if (s.progress >= 100) {
+            alert("Training completed successfully!");
+          } else if (s.message && (s.message.includes("error") || s.message.includes("No training") || s.message.includes("not found"))) {
+            alert("Training stopped: " + s.message);
+          }
+        } else if (!s.running && s.progress === 0 && s.message.includes("error")) {
+          clearInterval(t);
+          trainBtn.disabled = false;
+          alert("Training failed: " + s.message);
+        }
       }
     }, 1500);
   });
